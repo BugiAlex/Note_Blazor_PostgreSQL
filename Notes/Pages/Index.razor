@@ -1,0 +1,103 @@
+﻿@page "/"
+@using Notes.Data
+@using Notes.Components
+@using Microsoft.AspNetCore.Components.Web
+@inject NoteService NoteService
+<PageTitle>Notes</PageTitle>
+
+@if (baseItems == null)
+{
+        <p><em>Loading...</em></p>
+}
+else
+{  
+    <div>
+     <div class="d-flex justify-content-between" style="background-color:grey;">
+
+            <div class="p-2">
+                <button id="CreateNote" @onclick="ToggleVisibility">@(IsVisible ? "Cancel" : "New note")</button>
+            </div>
+
+            <div class="p-2">
+                <input type="text" placeholder="Enter search term" @bind="searchText"/>
+            </div>
+
+            <div class="p-2">
+                <label>Total notes: @baseItems.Count</label>
+            </div>
+
+        </div>
+
+    <div id="divToCreateNote" style=" margin: 10px; background-color: gray; padding: 10px; @(IsVisible ? "display: block;" : "display: none;")">
+        
+            <div style="margin:10px">
+                <textarea cols="50" placeholder="Title" @bind="titleAddNote">@titleAddNote</textarea>
+            </div>
+            
+            <div style="margin:10px">
+                <textarea cols="50" placeholder="Note text" @bind="textAddNote">@textAddNote</textarea>
+                <button style="margin: 10px" @onclick="AddNote">Create note</button>
+            </div>                             
+        </div>
+        
+     
+        @foreach (var note in filteredNotes)
+        {           
+            <NoteView Note=@note> </NoteView>
+        }
+    </div>   
+}
+
+@code {
+
+    string searchText = "";
+
+    private List<Note> baseItems = new();
+
+    private string titleAddNote = "";
+    private string textAddNote = "";
+
+    private List<Note> filteredNotes
+    {
+        get
+        {                     
+            if (string.IsNullOrWhiteSpace(searchText))
+                return baseItems.OrderByDescending(note => DateTime.Parse(note.Date)).ToList();
+            else
+                return ((baseItems.Where(item => item.Text.Contains(searchText, StringComparison.OrdinalIgnoreCase)))
+                .Union(baseItems.Where(item => item.Title.Contains(searchText, StringComparison.OrdinalIgnoreCase))))
+                .OrderByDescending(note => DateTime.Parse(note.Date)).ToList();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        baseItems = NoteService.GetNotes();
+    }
+
+    private bool IsVisible = false;
+
+    private void ToggleVisibility()
+    {
+        IsVisible = !IsVisible;
+    }
+
+    private void AddNote()
+    {
+        if (!string.IsNullOrWhiteSpace(titleAddNote) && !string.IsNullOrWhiteSpace(textAddNote))
+        {
+            Note newNote = new Note()
+                {
+                    Id = Guid.NewGuid(),
+                    Title = titleAddNote,
+                    Text = textAddNote,
+                    Date = DateTime.Now.ToString()
+                };
+
+            NoteService.AddNote(newNote);
+            titleAddNote = "";
+            textAddNote = "";
+            baseItems = NoteService.GetNotes();
+        }
+    }
+}

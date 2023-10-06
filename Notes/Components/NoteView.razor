@@ -1,0 +1,114 @@
+﻿@using Notes.Data
+@inject NoteService NoteService
+
+<div style="background-color:gray;">
+
+    <div class="d-flex justify-content-between" style="background-color:grey; margin: 10px">
+
+        <div class="p-2 ">
+            <label style="margin:10px; @(IsEditable ? "display: none;" : "display: block;")">@Note.Title</label>
+            <textarea cols="50" style="margin:20px; @(IsEditable ? "display: block;" : "display: none;")" @bind="Note.Title">@Note.Title</textarea>
+        </div>
+       
+        <div class="p-2">
+            <label style="margin:10px">@CreatedDayAgo</label>
+            <button style="margin:10px" @onclick="ToggleVisibility">@(IsVisible ? "Hide note" : "View note")</button>           
+        </div>
+    </div>
+
+    <div style="background-color: white; @(IsVisible ? "display: block;" : "display: none;")">
+
+        <div style="@(IsEditable ? "display: none;" : "display: block;")">
+            <div class="d-flex justify-content-between">
+                <div class="p-2">
+                <label   style="margin: 20px; white-space: pre-line; word-wrap:break-word;">@Note.Text</label>
+                </div>
+                <div class="p-2">
+                <button style="margin:10px; width:100px" @onclick="ToggleEditability">Edit note</button> 
+                </div>
+            </div>
+        </div>
+        
+        <div style="@(IsEditable ? "display: block;" : "display: none;")">
+            <div class="d-flex justify-content-start">
+                <div class="p-2">
+                    <textarea cols="50" style="margin: 20px;" @bind ="Note.Text">@Note.Text</textarea>
+                </div>
+                <div class="p-2">
+                    <button style="margin:10px" @onclick="CancelUpdate">Cancel</button>
+                    <button style="margin:10px" @onclick="UpdateNote">Save</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public Note Note { get; set; }
+
+    private string CreatedDayAgo
+    {
+        get
+        {
+            int i = 0;
+            DateTime startDate = DateTime.Parse(Note.Date);
+            DateTime currentDate = DateTime.Now;
+            TimeSpan elapsedDays = currentDate - startDate;
+            int days = (int)elapsedDays.TotalDays;
+
+            if(days == 0)
+            {
+                return "Created Today";
+            }
+            else
+            {
+                return "Created " + days + " days ago";
+            }
+            
+        }
+    }
+
+    private string tmpText = "";
+    private string tmpTitle = "";
+
+    private bool IsVisible = false;
+
+    private bool IsEditable = false;
+
+    private void ToggleVisibility()
+    {
+        IsVisible = !IsVisible;
+        if (IsEditable)
+        {
+            IsEditable = false;
+        }
+    }
+
+    private void ToggleEditability()
+    {
+        IsEditable = !IsEditable;
+        if (IsEditable)
+        {
+            tmpText = Note.Text;
+            tmpTitle = Note.Title;
+        }
+    }
+
+    private void UpdateNote()
+    {
+        if(!string.IsNullOrWhiteSpace(Note.Text) && !string.IsNullOrWhiteSpace(Note.Title))
+        {
+            NoteService.UpdateNote(Note);
+            ToggleEditability();
+        }       
+    }
+
+    private void CancelUpdate()
+    {
+        IsEditable = false;
+        Note.Title = tmpTitle;
+        Note.Text = tmpText;
+    }   
+}
